@@ -125,4 +125,99 @@ contract TokenVaultTest is Test {
         factory.createVault(token);
         vm.stopPrank();
     }
+
+    /**
+     * @notice Fuzz deposit amounts to ensure vault correctly mints shares.
+     */
+    function testFuzz_Deposit(uint256 amount) public {
+        vm.assume(amount > 0 && amount <= token.balanceOf(alice));
+
+        vm.startPrank(alice);
+        vault.deposit(amount, alice);
+        vm.stopPrank();
+
+        assertEq(vault.balanceOf(alice), amount, "Shares should equal deposit");
+        assertEq(token.balanceOf(alice), 1000 ether - amount, "Tokens should decrease");
+    }
+
+    /**
+     * @notice Fuzz withdraw amounts and ensure withdrawals are correct.
+     */
+    function testFuzz_Withdraw(uint256 depositAmount, uint256 withdrawAmount) public {
+        vm.assume(depositAmount > 0 && depositAmount <= 1000 ether);
+        vm.assume(withdrawAmount <= depositAmount);
+
+        vm.startPrank(alice);
+        vault.deposit(depositAmount, alice);
+
+        uint256 aliceBalBefore = token.balanceOf(alice);
+        vault.withdraw(withdrawAmount, alice, alice);
+        vm.stopPrank();
+
+        assertEq(
+            token.balanceOf(alice),
+            aliceBalBefore - depositAmount + withdrawAmount,
+            "Tokens should match expected balance"
+        );
+    }
+
+    /**
+     * @notice Fuzz redeem amounts and ensure correctness.
+     */
+    function testFuzz_Redeem(uint256 depositAmount, uint256 redeemAmount) public {
+        vm.assume(depositAmount > 0 && depositAmount <= 1000 ether);
+        vm.assume(redeemAmount <= depositAmount);
+
+        vm.startPrank(alice);
+        vault.deposit(depositAmount, alice);
+        vault.redeem(redeemAmount, alice, alice);
+        vm.stopPrank();
+
+        // After redeem, Alice's shares should decrease by redeemAmount
+        assertEq(vault.balanceOf(alice), depositAmount - redeemAmount, "Remaining shares should match");
+    }
+
+    /**
+     * @notice Fuzzing test: multiple deposits and withdrawals
+     */
+    function testFuzz_MultiDepositWithdraw(uint256 deposit1, uint256 deposit2, uint256 withdraw) public {
+        vm.assume(deposit1 > 0 && deposit1 <= 500 ether);
+        vm.assume(deposit2 > 0 && deposit2 <= 500 ether);
+        vm.assume(withdraw <= deposit1 + deposit2);
+
+        vm.startPrank(alice);
+        vault.deposit(deposit1, alice);
+        vault.deposit(deposit2, alice);
+        vault.withdraw(withdraw, alice, alice);
+        vm.stopPrank();
+
+        assertTrue(vault.balanceOf(alice) + withdraw <= deposit1 + deposit2, "Consistency check");
+    }
+
+    /**
+     * @notice Fuzz test: random users interact with vault
+     */
+    function testFuzz_MultiUserInteraction(uint256 aliceDeposit, uint256 bobDeposit) public {
+        vm.assume(aliceDeposit > 0 && aliceDeposit <= 1000 ether);
+        vm.assume(bobDeposit > 0 && bobDeposit <= 1000 ether);
+
+        // Alice deposits
+        vm.startPrank(alice);
+        vault.deposit(aliceDeposit, alice);
+        vm.stopPrank();
+
+        // Bob deposits
+        vm.startPrank(bob);
+        vault.deposit(bobDeposit, bob);
+        vm.stopPrank();
+
+        // Simulate yield
+        token.transfer(address(vault), 50 ether);
+
+        uint256 aliceAssets = vault.convertToAssets(vault.balanceOf(alice));
+        uint256 bobAssets = vault.convertToAssets(vault.balanceOf(bob));
+
+        assertTrue(aliceAssets >= aliceDeposit, "Alice should not lose value");
+        assertTrue(bobAssets >= bobDeposit, "Bob should not lose value");
+    }
 }
