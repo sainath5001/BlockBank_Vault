@@ -220,4 +220,25 @@ contract TokenVaultTest is Test {
         assertTrue(aliceAssets >= aliceDeposit, "Alice should not lose value");
         assertTrue(bobAssets >= bobDeposit, "Bob should not lose value");
     }
+
+    function testFuzz_ZeroDeposit() public {
+        vm.startPrank(alice);
+        vm.expectRevert("ERC4626: deposit amount must be greater than zero");
+        vault.deposit(0, alice);
+        vm.stopPrank();
+    }
+
+    function testFuzz_ZeroWithdraw() public {
+        vm.startPrank(alice);
+        vm.expectRevert("ERC4626: withdraw amount must be greater than zero");
+        vault.withdraw(0, alice, alice);
+        vm.stopPrank();
+    }
+
+    function testFuzz_ZeroRedeem() public {
+        vm.startPrank(alice);
+        vm.expectRevert("ERC4626: redeem amount must be greater than zero");
+        vault.redeem(0, alice, alice);
+        vm.stopPrank();
+    }
 }
