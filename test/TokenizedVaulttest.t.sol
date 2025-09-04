@@ -241,4 +241,41 @@ contract TokenVaultTest is Test {
         vault.redeem(0, alice, alice);
         vm.stopPrank();
     }
+
+    function testFuzz_InsufficientBalance() public {
+        vm.startPrank(alice);
+        vault.deposit(100 ether, alice);
+        vm.expectRevert("ERC4626: withdraw amount exceeds balance");
+        vault.withdraw(200 ether, alice, alice);
+        vm.stopPrank();
+    }
+
+    function testFuzz_InsufficientShares() public {
+        vm.startPrank(alice);
+        vault.deposit(100 ether, alice);
+        vm.expectRevert("ERC4626: redeem amount exceeds balance");
+        vault.redeem(200 ether, alice, alice);
+        vm.stopPrank();
+    }
+
+    function testFuzz_ApproveZeroAddress() public {
+        vm.startPrank(alice);
+        vm.expectRevert("ERC20: approve to the zero address");
+        token.approve(address(0), 100 ether);
+        vm.stopPrank();
+    }
+
+    function testFuzz_TransferZeroAddress() public {
+        vm.startPrank(alice);
+        vm.expectRevert("ERC20: transfer to the zero address");
+        token.transfer(address(0), 100 ether);
+        vm.stopPrank();
+    }
+
+    function testFuzz_TransferFromZeroAddress() public {
+        vm.startPrank(alice);
+        vm.expectRevert("ERC20: transfer from the zero address");
+        token.transferFrom(address(0), bob, 100 ether);
+        vm.stopPrank();
+    }
 }
