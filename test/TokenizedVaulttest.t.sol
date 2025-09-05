@@ -278,4 +278,19 @@ contract TokenVaultTest is Test {
         token.transferFrom(address(0), bob, 100 ether);
         vm.stopPrank();
     }
+
+    function testFuzz_TransferExceedsBalance() public {
+        vm.startPrank(alice);
+        vm.expectRevert("ERC20: transfer amount exceeds balance");
+        token.transfer(bob, 2000 ether); // Alice only has 1000 ether
+        vm.stopPrank();
+    }
+
+    function testFuzz_TransferFromExceedsAllowance() public {
+        vm.startPrank(alice);
+        token.approve(bob, 100 ether); // Allow Bob to spend 100 ether
+        vm.expectRevert("ERC20: transfer amount exceeds allowance");
+        token.transferFrom(alice, bob, 200 ether); // Bob tries to transfer more than allowed
+        vm.stopPrank();
+    }
 }
