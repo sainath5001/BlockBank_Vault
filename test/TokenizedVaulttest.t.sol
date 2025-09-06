@@ -293,4 +293,18 @@ contract TokenVaultTest is Test {
         token.transferFrom(alice, bob, 200 ether); // Bob tries to transfer more than allowed
         vm.stopPrank();
     }
+
+    function testFuzz_TransferFromZeroAddressToNonZero() public {
+        vm.startPrank(alice);
+        vm.expectRevert("ERC20: transfer from the zero address");
+        token.transferFrom(address(0), bob, 100 ether);
+        vm.stopPrank();
+    }
+
+    function testFuzz_TransferFromNonZeroToZeroAddress() public {
+        vm.startPrank(alice);
+        vm.expectRevert("ERC20: transfer to the zero address");
+        token.transferFrom(alice, address(0), 100 ether);
+        vm.stopPrank();
+    }
 }
