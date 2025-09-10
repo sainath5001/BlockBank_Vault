@@ -362,4 +362,20 @@ contract TokenVaultTest is Test {
         token.transferFrom(alice, bob, 200 ether); // Bob tries to transfer more than allowed
         vm.stopPrank();
     }
+
+    function testFuzz_TransferFromNonZeroToNonZeroWithMaxUintAndZeroAddress() public {
+        vm.startPrank(alice);
+        token.approve(bob, type(uint256).max); // Allow Bob to spend max uint
+        vm.expectRevert("ERC20: transfer to the zero address");
+        token.transferFrom(alice, address(0), 100 ether); // Bob tries to transfer to zero address
+        vm.stopPrank();
+    }
+
+    function testFuzz_TransferFromNonZeroToNonZeroWithMaxUintAndNonZeroAddress() public {
+        vm.startPrank(alice);
+        token.approve(bob, type(uint256).max); // Allow Bob to spend max uint
+        token.transferFrom(alice, bob, 100 ether); // Should succeed
+        assertEq(token.balanceOf(bob), 100 ether, "Bob should receive tokens");
+        vm.stopPrank();
+    }
 }
